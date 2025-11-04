@@ -18,7 +18,7 @@ dill==0.4.0
 distro==1.9.0
 einops==0.8.0
 executing==2.0.1
-fbgemm_gpu==0.8.0+cu118
+fbgemm_gpu==0.8.0
 filelock==3.13.1
 fire==0.7.1
 flatbuffers==1.12
@@ -116,11 +116,9 @@ termcolor==3.1.0
 tokenizers==0.22.1
 torch==2.6.0
 torchaudio==2.6.0
-torchboost==0.0.7
 torcheval==0.0.7
 torchmetrics==1.0.3
-torchrec==0.6.0+cu118
-torchrec_dynamic_embedding==0.0.13
+torchrec==0.6.0
 torchsnapshot==0.1.0
 torchvision==0.21.0
 tqdm==4.67.1
@@ -138,3 +136,4 @@ wcwidth==0.2.13
 xxhash==3.6.0
 yarl==1.9.4
 zipp==3.20.0
+sentence-transformers>=2.7.0
