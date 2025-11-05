@@ -47,12 +47,10 @@ def generate_item_embedding(args, item_text_list, tokenizer, model, pooling, bat
     model = accelerator.prepare(model)
     processed_item = []
     with torch.no_grad():
-        # while start < len(item_text_list):
-        while start < 20:
+        while start < len(item_text_list):
             if (start+1)%100==0:
                 print("==>",start+1)
             field_texts = item_text_list.iloc[start: start + batch_size]
-            display(field_texts)
             sentences = field_texts["description"].tolist()
             encoded_sentences = tokenizer(sentences, max_length=args.max_sent_len,
                                             truncation=True, return_tensors='pt', padding="longest").to(args.device)

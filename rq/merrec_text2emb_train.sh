@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --job-name=merrec_text2emb
+#SBATCH --job-name=merrec_text2emb_train
 #SBATCH --gres=gpu:1
 #SBATCH --time=72:00:00
 #SBATCH --cpus-per-task=32
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=1
-#SBATCH --output=merrec_text2emb.log
-#SBATCH --error=merrec_text2emb.err
+#SBATCH --output=merrec_text2emb_train.log
+#SBATCH --error=merrec_text2emb_train.err
 
 export NODE_RANK=$SLURM_NODEID
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
@@ -25,7 +25,7 @@ echo "MASTER_PORT="$MASTER_PORT
 nvidia-smi
 
 python merrec_text2emb.py \
-      --dataset /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/rankagi_output_v2/src/merrec/item_text/item_text_eval.jsonl \
-      --root /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_eval.npy \
+      --dataset /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/rankagi_output_v2/src/merrec/item_text/item_text_train.jsonl \
+      --root /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train.npy \
       --plm_name qwen \
       --plm_checkpoint "Qwen/Qwen3-Embedding-0.6B"
