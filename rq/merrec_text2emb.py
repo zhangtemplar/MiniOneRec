@@ -26,8 +26,8 @@ def mean_pool(last_hidden_state, attention_mask):
     masked_output = last_hidden_state * attention_mask.unsqueeze(-1)
     return masked_output.sum(dim=1) / attention_mask.sum(dim=-1, keepdim=True)
 
-def last_token_pool(last_hidden_states: Tensor,
-                 attention_mask: Tensor) -> Tensor:
+def last_token_pool(last_hidden_states: torch.Tensor,
+                 attention_mask: torch.Tensor) -> torch.Tensor:
     left_padding = (attention_mask[:, -1].sum() == attention_mask.shape[0])
     if left_padding:
         return last_hidden_states[:, -1]
@@ -45,7 +45,9 @@ def generate_item_embedding(args, item_text_list, tokenizer, model, pooling, bat
     start = 0
     accelerator = Accelerator()
     model = accelerator.prepare(model)
+    processed_item = []
     with torch.no_grad():
+        # while start < len(item_text_list):
         while start < 20:
             if (start+1)%100==0:
                 print("==>",start+1)
@@ -67,13 +69,15 @@ def generate_item_embedding(args, item_text_list, tokenizer, model, pooling, bat
                 mean_output = last_token_pool(outputs.last_hidden_state, encoded_sentences['attention_mask'])
             mean_output = mean_output.detach().cpu()
             embeddings.append(mean_output)
+            processed_item.extend(field_texts["item_id"].tolist())
             start += batch_size
 
     embeddings = torch.cat(embeddings, dim=0).numpy()
     print('Embeddings shape: ', embeddings.shape)
 
-    file = os.path.join(args.root, args.dataset + '.emb-' + args.plm_name + "-td" + ".npy")
-    np.save(file, embeddings)
+    np.save(args.root, embeddings)
+    with open(args.root.replace("npy", "json"), "w") as fo:
+        json.dump(processed_item, fo)
 
 
 def load_qwen_model(model_path, device):
@@ -109,7 +113,7 @@ def set_device(gpu_id):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, help='provide a merrec path')
-    parser.add_argument('--root', type=str, help="where ti save resykt")
+    parser.add_argument('--root', type=str, help="path to a numpy file to save the results")
     parser.add_argument('--gpu_id', type=int, default=0, help='ID of running GPU')
     parser.add_argument('--plm_name', type=str, default='qwen')
     parser.add_argument('--plm_checkpoint', type=str,
@@ -123,8 +127,6 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-
-    args.root = os.path.join(args.root, args.dataset)
 
     device = set_device(args.gpu_id)
     args.device = device

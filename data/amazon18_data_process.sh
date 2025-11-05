@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --job-name=merrec_text2emb
+#SBATCH --job-name=amazon18_data_process
 #SBATCH --gres=gpu:1
 #SBATCH --time=72:00:00
 #SBATCH --cpus-per-task=32
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=1
-#SBATCH --output=merrec_text2emb.log
-#SBATCH --error=merrec_text2emb.err
+#SBATCH --output=amazon18_data_process.log
+#SBATCH --error=amazon18_data_process.err
 
 export NODE_RANK=$SLURM_NODEID
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
@@ -23,7 +23,7 @@ echo "MASTER_ADDR="$MASTER_ADDR
 echo "MASTER_PORT="$MASTER_PORT
 
 python amazon18_data_process.py \
-    --dataset Sports_and_Outdoors \
+    --dataset Industrial_and_Scientific \
     --user_k 5 \
     --item_k 5 \
     --st_year 2017 \

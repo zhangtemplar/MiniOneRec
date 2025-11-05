@@ -23,7 +23,7 @@ echo "MASTER_ADDR="$MASTER_ADDR
 echo "MASTER_PORT="$MASTER_PORT
 
 python merrec_text2emb.py \
-      --dataset /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/rankagi_output_v2/src/merrec/item_text \
-      --root /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec \
+      --dataset /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/rankagi_output_v2/src/merrec/item_text/item_text_eval.jsonl \
+      --root /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_eval.npy \
       --plm_name qwen \
       --plm_checkpoint "Qwen/Qwen3-Embedding-0.6B"
