@@ -5,6 +5,7 @@ FAISS ResidualQuantizer  +  Sinkhorn-based Uniform Semantic Mapping
 ===================================================================
 """
 
+import logging
 import argparse
 import json
 import os
@@ -13,6 +14,9 @@ from collections import defaultdict
 import faiss
 import numpy as np
 from tqdm import tqdm
+
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def pairwise_sq_dists_batch(X, C, C_norm2=None):
@@ -29,8 +33,8 @@ def pairwise_sq_dists_batch(X, C, C_norm2=None):
 def train_faiss_rq(data, num_levels=3, codebook_size=256, verbose=True):
     N, d = data.shape
     if verbose:
-        print("Training FAISS ResidualQuantizer")
-        print(f"  data={N}  dim={d}  levels={num_levels}  "
+        logger.error("Training FAISS ResidualQuantizer")
+        logger.error(f"  data={N}  dim={d}  levels={num_levels}  "
               f"codebook={codebook_size}  total_codes={codebook_size ** num_levels:,}")
 
     nbits = int(np.log2(codebook_size))
@@ -38,22 +42,21 @@ def train_faiss_rq(data, num_levels=3, codebook_size=256, verbose=True):
     rq.train_type = faiss.ResidualQuantizer.Train_default
     rq.max_beam_size = 1
 
-    rq.train(np.ascontiguousarray(data.astype(np.float32)))
+    rq.train(data)
     if verbose:
-        print("  training completed\n")
+        logger.error("  training completed\n")
     return rq
 
 
 def encode_with_rq(rq, data, verbose=True):
-    data = np.ascontiguousarray(data.astype(np.float32))
     if verbose:
-        print(f"Encoding {data.shape[0]} vectors ...")
+        logger.error(f"Encoding {data.shape[0]} vectors ...")
     codes = rq.compute_codes(data)
     if codes.ndim == 1:
         codes = codes.reshape(-1, rq.M)
     codes = codes.astype(np.int32)
     if verbose:
-        print(f"  done, codes.shape={codes.shape}\n")
+        logger.error(f"  done, codes.shape={codes.shape}\n")
     return codes
 
 
@@ -68,7 +71,7 @@ def get_rq_codebooks(rq):
 def compute_residuals_upto_level(rq, data, codes, upto_level, codebooks=None):
     if codebooks is None:
         codebooks = get_rq_codebooks(rq)
-    residuals = np.ascontiguousarray(data.astype(np.float32)).copy()
+    residuals = data.copy()
     for l in range(upto_level):
         residuals -= codebooks[l][codes[:, l]]
     return residuals
@@ -104,7 +107,7 @@ def sinkhorn_balance_level(residuals, centroids, capacities=None, *,
     if tau is None:
         tau = estimate_tau(residuals, centroids)
     if verbose:
-        print(f"  Sinkhorn level: N={N}  K={K}  tau={tau:.5g}  "
+        logger.error(f"  Sinkhorn level: N={N}  K={K}  tau={tau:.5g}  "
               f"iters={iters}  batch={batch_size}")
 
     a = np.ones(N) / N                              
@@ -117,6 +120,7 @@ def sinkhorn_balance_level(residuals, centroids, capacities=None, *,
 
     D_full = cost_fun(residuals).astype(np.float64)
     P = ot.sinkhorn(a, b, D_full, tau)             
+    del D_full
 
     remaining = capacities.copy()
     assign = np.empty(N, dtype=np.int32)
@@ -144,7 +148,7 @@ def sinkhorn_balance_level(residuals, centroids, capacities=None, *,
 
     if verbose:
         used = capacities - remaining
-        print(f"    level balanced: min={used.min()}  max={used.max()}")
+        logger.error(f"    level balanced: min={used.min()}  max={used.max()}")
 
     return assign
 
@@ -159,7 +163,7 @@ def sinkhorn_uniform_mapping(rq, data, codes, *, batch_size=8192,
     codes_bal = codes.copy()
     for l in range(M):
         if verbose:
-            print(f"\n=== Sinkhorn uniform mapping  level {l+1}/{M} ===")
+            logger.error(f"\n=== Sinkhorn uniform mapping  level {l+1}/{M} ===")
         residuals = compute_residuals_upto_level(
             rq, data, codes_bal, upto_level=l, codebooks=codebooks)
 
@@ -170,7 +174,7 @@ def sinkhorn_uniform_mapping(rq, data, codes, *, batch_size=8192,
             residuals, codebooks[l], capacities=capacities,
             batch_size=batch_size, iters=iters, tau=tau,
             verbose=verbose, topk=topk, seed=seed + l)
-
+        del residuals
         codes_bal[:, l] = new_ids
     return codes_bal
 
@@ -179,12 +183,12 @@ def analyze_codes(codes, title="", verbose=True):
     N, M = codes.shape
     if verbose:
         if title:
-            print(title)
-        print(f"  total={N}")
+            logger.error(title)
+        logger.error(f"  total={N}")
         for l in range(M):
-            print(f"  L{l+1}: unique={len(np.unique(codes[:, l]))}")
+            logger.error(f"  L{l+1}: unique={len(np.unique(codes[:, l]))}")
         combos = len(set(map(tuple, codes)))
-        print(f"  unique full-paths={combos}  "
+        logger.error(f"  unique full-paths={combos}  "
               f"collision_rate={1 - combos / N:.4f}")
     return
 
@@ -201,13 +205,13 @@ def save_indices_json(codes, path, use_prefix=True):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(idx, f, indent=2)
-    print("Saved indices:", path)
+    logger.error(f"Saved indices: {path}")
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="FAISS-RQ + Sinkhorn uniform mapping")
-    parser.add_argument("--dataset", default="Industrial_and_Scientific")
+    parser.add_argument("--dataset", help="full dataset path")
     parser.add_argument("--num_levels", type=int, default=3)
     parser.add_argument("--codebook_size", type=int, default=256)
     parser.add_argument("--uniform", action="store_true",
@@ -215,21 +219,23 @@ def main():
     parser.add_argument("--iters", type=int, default=30,
                         help="Sinkhorn iterations")
     parser.add_argument("--batch_size", type=int, default=8192)
-    parser.add_argument("--output_root", default="../data")
+    parser.add_argument("--output_root", help="full output path")
     args = parser.parse_args()
 
-    data_path = f"../data/Amazon/index/{args.dataset}.emb-qwen-td.npy"
-    out_dir = os.path.join(args.output_root, args.dataset)
-    os.makedirs(out_dir, exist_ok=True)
-    out_json = os.path.join(out_dir, f"{args.dataset}.faiss-rq.index.json")
-    out_faiss = out_json.replace(".json", ".faiss")
+    os.makedirs(os.path.dirname(args.output_root), exist_ok=True)
+    out_faiss = args.output_root.replace(".json", ".faiss")
 
-    print("loading:", data_path)
-    data = np.load(data_path)
-    print("shape:", data.shape)
+    logger.error(f"loading: {args.dataset}")
+    logger.error(os.system("free -h"))
+    data = np.load(args.dataset, mmap_mode='r')
+    data = np.ascontiguousarray(data.astype(np.float32))
+    logger.error(f"shape: {data.shape}")
+    logger.error(os.system("free -h"))
 
     rq = train_faiss_rq(data, args.num_levels, args.codebook_size)
+    logger.error(os.system("free -h"))
     codes_raw = encode_with_rq(rq, data, verbose=True)
+    logger.error(os.system("free -h"))
 
     analyze_codes(codes_raw, "Before balancing:")
 
@@ -239,12 +245,13 @@ def main():
             batch_size=args.batch_size,
             iters=args.iters,
             verbose=True)
+        logger.error(os.system("free -h"))
         analyze_codes(codes_bal, "After  balancing:")
         codes_final = codes_bal
     else:
         codes_final = codes_raw
 
-    save_indices_json(codes_final, out_json, use_prefix=True)
+    save_indices_json(codes_final, args.output_root, use_prefix=True)
 
     try:
         nbits_val = get_first_nbits(rq)     
@@ -252,9 +259,9 @@ def main():
         index.rq = rq
         index.is_trained = True
         faiss.write_index(index, out_faiss)
-        print("Saved faiss quantizer:", out_faiss)
+        logger.error(f"Saved faiss quantizer: {out_faiss}")
     except Exception as e:
-        print("save faiss index failed:", e)
+        logger.error("save faiss index failed:", e)
 
 def get_first_nbits(rq):
     if isinstance(rq.nbits, int):
