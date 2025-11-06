@@ -14,6 +14,7 @@ from collections import defaultdict
 import faiss
 import numpy as np
 from tqdm import tqdm
+import ot
 
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -208,6 +209,38 @@ def save_indices_json(codes, path, use_prefix=True):
     logger.error(f"Saved indices: {path}")
 
 
+def generate_codes(rq, data, uniform: bool, batch_size: int, iters: int, output_root: str):
+    codes_raw = encode_with_rq(rq, data, verbose=True)
+    logger.error(os.system("free -h"))
+
+    analyze_codes(codes_raw, "Before balancing:")
+
+    if uniform:
+        codes_bal = sinkhorn_uniform_mapping(
+            rq, data, codes_raw,
+            batch_size=batch_size,
+            iters=iters,
+            verbose=True)
+        logger.error(os.system("free -h"))
+        analyze_codes(codes_bal, "After  balancing:")
+        codes_final = codes_bal
+    else:
+        codes_final = codes_raw
+
+    save_indices_json(codes_final, output_root, use_prefix=True)
+
+    try:
+        out_faiss = output_root.replace(".json", ".faiss")
+        nbits_val = get_first_nbits(rq)     
+        index = faiss.IndexResidualQuantizer(rq.d, rq.M, nbits_val)
+        index.rq = rq
+        index.is_trained = True
+        faiss.write_index(index, out_faiss)
+        logger.error(f"Saved faiss quantizer: {out_faiss}")
+    except Exception as e:
+        logger.error(f"save faiss index failed: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="FAISS-RQ + Sinkhorn uniform mapping")
@@ -219,13 +252,20 @@ def main():
     parser.add_argument("--iters", type=int, default=30,
                         help="Sinkhorn iterations")
     parser.add_argument("--batch_size", type=int, default=8192)
-    parser.add_argument("--output_root", help="full output path")
+    parser.add_argument("--output_root", help="full output path, which is a json")
+    parser.add_argument("--test_data", type=str, default=None,
+                        help="Optional full path to test data (.npy file). If provided, "
+                             "will encode test data using codebook trained from training dataset")
+    parser.add_argument("--test_data_output", type=str, default=None,
+                        help="Optional full path to output data of test_data, which is a json")
     args = parser.parse_args()
+    if args.test_data is not None:
+        assert args.test_data_output is not None, "need test_data_output if test_data present"
 
+    # Training on main dataset
     os.makedirs(os.path.dirname(args.output_root), exist_ok=True)
-    out_faiss = args.output_root.replace(".json", ".faiss")
 
-    logger.error(f"loading: {args.dataset}")
+    logger.error(f"loading training: {args.dataset}")
     logger.error(os.system("free -h"))
     data = np.load(args.dataset, mmap_mode='r')
     data = np.ascontiguousarray(data.astype(np.float32))
@@ -234,34 +274,19 @@ def main():
 
     rq = train_faiss_rq(data, args.num_levels, args.codebook_size)
     logger.error(os.system("free -h"))
-    codes_raw = encode_with_rq(rq, data, verbose=True)
-    logger.error(os.system("free -h"))
+    
+    generate_codes(rq, data, args.uniform, args.batch_size, args.iters, args.output_root)
+    del data
 
-    analyze_codes(codes_raw, "Before balancing:")
-
-    if args.uniform:
-        codes_bal = sinkhorn_uniform_mapping(
-            rq, data, codes_raw,
-            batch_size=args.batch_size,
-            iters=args.iters,
-            verbose=True)
+    # Encode test data if provided
+    if args.test_data:
+        logger.error(f"loading test: {args.dataset}")
         logger.error(os.system("free -h"))
-        analyze_codes(codes_bal, "After  balancing:")
-        codes_final = codes_bal
-    else:
-        codes_final = codes_raw
-
-    save_indices_json(codes_final, args.output_root, use_prefix=True)
-
-    try:
-        nbits_val = get_first_nbits(rq)     
-        index = faiss.IndexResidualQuantizer(rq.d, rq.M, nbits_val)
-        index.rq = rq
-        index.is_trained = True
-        faiss.write_index(index, out_faiss)
-        logger.error(f"Saved faiss quantizer: {out_faiss}")
-    except Exception as e:
-        logger.error("save faiss index failed:", e)
+        data = np.load(args.test_data, mmap_mode='r')
+        data = np.ascontiguousarray(data.astype(np.float32))
+        logger.error(f"shape: {data.shape}")
+        logger.error(os.system("free -h"))
+        generate_codes(rq, data, args.uniform, args.batch_size, args.iters, args.test_data_output)
 
 def get_first_nbits(rq):
     if isinstance(rq.nbits, int):

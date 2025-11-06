@@ -30,6 +30,8 @@ nvidia-smi
 python rqkmeans_faiss.py \
       --dataset /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train.npy \
       --output_root /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_train_uniform_128_128_128.json \
+      --test_data /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_eval.npy \
+      --test_data_output /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_eval_uniform_128_128_128.json \
       --num_levels 3 \
       --codebook_size 128 \
       --uniform
