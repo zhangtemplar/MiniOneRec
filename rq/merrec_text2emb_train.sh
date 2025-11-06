@@ -26,6 +26,6 @@ nvidia-smi
 
 python merrec_text2emb.py \
       --dataset /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/rankagi_output_v2/src/merrec/item_text/item_text_train.jsonl \
-      --root /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train.npy \
+      --root /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train_8B.npy \
       --plm_name qwen \
-      --plm_checkpoint "Qwen/Qwen3-Embedding-0.6B"
+      --plm_checkpoint "Qwen/Qwen3-Embedding-8B"
