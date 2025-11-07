@@ -26,7 +26,7 @@ Industry practice for VQ-VAE and RQ-VAE suggests:
 - [x] uniform sampling disable, 3 level, 128 each level. It would have `2M` unique combinations of semantic IDs.
 - [x] uniform sampling enabled, 3 level, 128 each level. It would have `2M` unique combinations of semantic IDs.
 - [x] uniform sampling disable, 3 level, 512 each level. It would have `134M` unique combinations of semantic IDs.
-- [1037] uniform sampling enabled, 3 level, 512 each level. It would have `134M` unique combinations of semantic IDs.
+- [x] uniform sampling enabled, 3 level, 512 each level. It would have `134M` unique combinations of semantic IDs.
 
 ### 128x128x128
 ```
@@ -152,5 +152,5 @@ Before balancing:
   | Expected collision rate | 2-3%             | 2-3%                  | <1%                        |
   | Expected MSE            | <0.005           | <0.005                | <0.003                     |
   |-------------------------|------------------|-----------------------|----------------------------|
-  | Status                  | 1037             | TBD                   |                            |
+  | Status                  | 1038             | TBD                   |                            |
 
