@@ -11,6 +11,9 @@ from datasets import EmbDataset
 from models.rqvae import RQVAE
 from trainer import  Trainer
 
+
+logger: logging.Logger = logging.getLogger(__name__)
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Index")
 
@@ -60,9 +63,9 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
 
     args = parse_args()
-    print("=================================================")
-    print(args)
-    print("=================================================")
+    logger.info("=================================================")
+    logger.info(f"{args}")
+    logger.info("=================================================")
 
     logging.basicConfig(level=logging.DEBUG)
 
@@ -82,13 +85,13 @@ if __name__ == '__main__':
                   sk_epsilons=args.sk_epsilons,
                   sk_iters=args.sk_iters,
                   )
-    print(model)
+    logger.info(model)
     data_loader = DataLoader(data,num_workers=args.num_workers,
                              batch_size=args.batch_size, shuffle=True,
                              pin_memory=True)
     trainer = Trainer(args,model, len(data_loader))
     best_loss, best_collision_rate = trainer.fit(data_loader)
 
-    print("Best Loss",best_loss)
-    print("Best Collision Rate", best_collision_rate)
+    logger.info(f"Best Loss {best_loss}")
+    logger.info(f"Best Collision Rate {best_collision_rate}")
 

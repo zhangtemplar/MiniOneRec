@@ -154,7 +154,7 @@ def sinkhorn_balance_level(residuals, centroids, capacities=None, *,
     return assign
 
 
-def sinkhorn_uniform_mapping(rq, data, codes, *, batch_size=8192,
+def sinkhorn_uniform_mapping(rq, data, codes, *, num_levels, batch_size=8192,
                              iters=30, tau=None, verbose=True,
                              topk=32, seed=42):
     codebooks = get_rq_codebooks(rq)
@@ -162,7 +162,7 @@ def sinkhorn_uniform_mapping(rq, data, codes, *, batch_size=8192,
     K = codebooks.shape[1]
 
     codes_bal = codes.copy()
-    for l in range(M):
+    for l in range(num_levels):
         if verbose:
             logger.error(f"\n=== Sinkhorn uniform mapping  level {l+1}/{M} ===")
         residuals = compute_residuals_upto_level(
@@ -209,7 +209,7 @@ def save_indices_json(codes, path, use_prefix=True):
     logger.error(f"Saved indices: {path}")
 
 
-def generate_codes(rq, data, uniform: bool, batch_size: int, iters: int, output_root: str):
+def generate_codes(rq, data, num_levels, uniform: bool, batch_size: int, iters: int, output_root: str):
     codes_raw = encode_with_rq(rq, data, verbose=True)
     logger.error(os.system("free -h"))
 
@@ -217,7 +217,7 @@ def generate_codes(rq, data, uniform: bool, batch_size: int, iters: int, output_
 
     if uniform:
         codes_bal = sinkhorn_uniform_mapping(
-            rq, data, codes_raw,
+            rq, data, codes_raw, num_levels,
             batch_size=batch_size,
             iters=iters,
             verbose=True)
@@ -275,7 +275,7 @@ def main():
     rq = train_faiss_rq(data, args.num_levels, args.codebook_size)
     logger.error(os.system("free -h"))
     
-    generate_codes(rq, data, args.uniform, args.batch_size, args.iters, args.output_root)
+    generate_codes(rq, data,args.num_levels, args.uniform, args.batch_size, args.iters, args.output_root)
     del data
 
     # Encode test data if provided
@@ -286,7 +286,7 @@ def main():
         data = np.ascontiguousarray(data.astype(np.float32))
         logger.error(f"shape: {data.shape}")
         logger.error(os.system("free -h"))
-        generate_codes(rq, data, args.uniform, args.batch_size, args.iters, args.test_data_output)
+        generate_codes(rq, data, args.num_levels, args.uniform, args.batch_size, args.iters, args.test_data_output)
 
 def get_first_nbits(rq):
     if isinstance(rq.nbits, int):

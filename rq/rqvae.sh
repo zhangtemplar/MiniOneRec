@@ -25,10 +25,8 @@ echo "MASTER_PORT="$MASTER_PORT
 
 # set default value
 # qwen 0.6B eval
-dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train.npy"
-output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_train_512_512_512_0.6B.json"
-test_dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_eval.npy"
-test_output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_eval_512_512_512_0.6B.json"
+dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train_8B.npy"
+output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_8B"
 batch_size=3
 codebook_size=256
 
@@ -47,38 +45,14 @@ nvidia-smi
 echo $dataset $output $test_dataset $test_output $num_levels $codebook_size
 
 # for 4096D / qwen 8B
-# python rqvae.py \
-#     --data_path $dataset \
-#     --ckpt_dir $output \
-#     --layers 4096 2048 1024 512 256 128 \
-#     --e_dim 128 \
-#     --batch_size 65536 \
-#     --num_emb_list 512 512 512 \
-#     --lr 1e-3 \
-#     --epochs 500 \
-#     --warmup_epochs 10 \
-#     --eval_step 10 \
-#     --kmeans_init True \
-#     --kmeans_iters 100 \
-#     --sk_epsilons 0.0 0.01 0.05 \
-#     --sk_iters 50 \
-#     --beta 0.25 \
-#     --quant_loss_weight 1.0 \
-#     --learner AdamW \
-#     --weight_decay 1e-5 \
-#     --lr_scheduler_type constant \
-#     --num_workers 8 \
-#     --device cuda:0
-
-# for 1024D / qwen 0.6B
 python rqvae.py \
     --data_path $dataset \
     --ckpt_dir $output \
-    --layers 1024 512 256 128 \
-    --e_dim 64 \
-    --batch_size 131072 \
+    --layers 4096 2048 1024 512 256 128 \
+    --e_dim 128 \
+    --batch_size 65536 \
     --num_emb_list 512 512 512 \
-    --lr 2e-3 \
+    --lr 1e-3 \
     --epochs 500 \
     --warmup_epochs 10 \
     --eval_step 10 \
@@ -91,5 +65,29 @@ python rqvae.py \
     --learner AdamW \
     --weight_decay 1e-5 \
     --lr_scheduler_type constant \
-    --num_workers 16 \
+    --num_workers 8 \
     --device cuda:0
+
+# for 1024D / qwen 0.6B
+# python rqvae.py \
+#     --data_path $dataset \
+#     --ckpt_dir $output \
+#     --layers 1024 512 256 128 \
+#     --e_dim 64 \
+#     --batch_size 131072 \
+#     --num_emb_list 512 512 512 \
+#     --lr 2e-3 \
+#     --epochs 500 \
+#     --warmup_epochs 10 \
+#     --eval_step 10 \
+#     --kmeans_init True \
+#     --kmeans_iters 100 \
+#     --sk_epsilons 0.0 0.01 0.05 \
+#     --sk_iters 50 \
+#     --beta 0.25 \
+#     --quant_loss_weight 1.0 \
+#     --learner AdamW \
+#     --weight_decay 1e-5 \
+#     --lr_scheduler_type constant \
+#     --num_workers 16 \
+#     --device cuda:0
