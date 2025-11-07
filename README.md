@@ -10,7 +10,7 @@ Scaling Generative Recommendation**
 ![License](https://img.shields.io/badge/License-Apache--2.0-green.svg)
 <a href="https://arxiv.org/abs/2510.24431"><img src="https://img.shields.io/static/v1?label=arXiv&message=Paper&color=red"></a>
 
-<a href="https://arxiv.org/abs/2510.24431">📄 Technical Report</a> | <a href="https://huggingface.co/kkknight/MiniOneRec">🤗 Datasets</a> | <a href="https://modelscope.cn/models/k925238839/MiniOneRec">🤖  Checkpoints</a>
+<a href="https://arxiv.org/abs/2510.24431">📄 Technical Report</a> | <a href="https://huggingface.co/kkknight/MiniOneRec">🤗 Huggingface</a> | <a href="https://modelscope.cn/models/k925238839/MiniOneRec">🤖  Modelscope</a>
 </div>
 
 **MiniOneRec** is the first fully open-source **generative recommendation** framework, which provides an end-to-end workflow spanning **SID construction**, **supervised fine-tuning (SFT)**, and recommendation-oriented **reinforcement learning (RL)**. 
@@ -18,6 +18,8 @@ Scaling Generative Recommendation**
 ---
 
 ## 📢 Announcement
+
+- 2025-11-07 — You can now choose to freeze the LLM parameters during the SFT stage and train only the embeddings for the newly added SID vocabulary.
 
 - 2025-10-31 — You can now directly download the implementation **checkpoints** of our MiniOnRec model.
 

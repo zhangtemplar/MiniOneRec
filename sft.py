@@ -107,6 +107,7 @@ def train(
     cutoff_len: int = 512,
     # llm hyperparams
     group_by_length: bool = False,  # faster, but produces an odd training loss curve
+    freeze_LLM: bool = False,  # freeze LLM parameters, only train new token embeddings
     # wandb params
     wandb_project: str = "",
     wandb_run_name: str = "",
@@ -160,6 +161,36 @@ def train(
             tokenizer.add_tokens(new_tokens)
             model.resize_token_embeddings(len(tokenizer))
 
+    # Freeze LLM parameters if required
+    if freeze_LLM:
+        print("Freezing LLM parameters, only training new token embeddings")
+        for param in model.parameters():
+            param.requires_grad = False
+
+        if sid_index_path and os.path.exists(sid_index_path) and new_tokens:
+            embedding_layer = model.get_input_embeddings()
+            if embedding_layer.weight.shape[0] > original_vocab_size:
+                embedding_layer.weight.requires_grad = True
+
+                def mask_grad(grad):
+                    # grad shape: [vocab_size, hidden_dim]
+                    grad[:original_vocab_size].zero_()
+                    return grad
+                
+                embedding_layer.weight.register_hook(mask_grad)
+
+                print(f"Unfrozen {len(new_tokens)} new token embeddings "
+                    f"(indices {original_vocab_size} to {len(tokenizer)-1})")
+
+        else:
+            print("Warning: freeze_LLM=True but no new tokens added. All parameters are frozen!")
+
+        # Print the number of trainable parameters (it will still report the size of the entire embedding matrix, but only the newly added rows will have non-zero gradients).
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        total_params     = sum(p.numel() for p in model.parameters())
+        print(f"Trainable parameters (with grad-mask): {trainable_params:,} / "
+            f"{total_params:,} ({100*trainable_params/total_params:.2f}%)")
+        
     train_datasets = []
     # train_data1 = SFTData(train_file=train_file, tokenizer=tokenizer, max_len=cutoff_len,  sample=sample, seed=seed, category=category)
     train_data1 = SidSFTDataset(train_file=train_file, tokenizer=tokenizer, max_len=cutoff_len,  sample=sample, seed=seed, category=category)

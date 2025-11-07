@@ -20,6 +20,7 @@ for category in "Industrial_and_Scientific"; do
             --category ${category} \
             --train_from_scratch False \
             --seed 42 \
-            --sid_index_path xxx/Industrial_and_Scientific/Industrial_and_Scientific.index.json \
-            --item_meta_path xxx/Industrial_and_Scientific/Industrial_and_Scientific.item.json
+            --sid_index_path ./data/Amazon/index/Industrial_and_Scientific.index.json \
+            --item_meta_path ./data/Amazon/index//Industrial_and_Scientific.item.json \
+            --freeze_LLM False
 done

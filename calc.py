@@ -19,7 +19,8 @@ def gao(path, item_path):
     
     f = open(f"{item_path}.txt", 'r')
     items = f.readlines()
-    item_names = [ _[:-len(_.split('\t')[-1])].strip() for _ in items]
+    # item_names = [ _[:-len(_.split('\t')[-1])].strip() for _ in items]
+    item_names= [_.split('\t')[0].strip() for _ in items]
     item_ids = [_ for _ in range(len(item_names))]
     item_dict = dict()
     for i in range(len(item_names)):
