@@ -1,6 +1,6 @@
 # Embedding Generation
 - [x] [Qwen 0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B), last token pooiling
-- [1034] [Qwen 8B](https://huggingface.co/Qwen/Qwen3-Embedding-8B), last token pooiling
+- [x] [Qwen 8B](https://huggingface.co/Qwen/Qwen3-Embedding-8B), last token pooiling
 - [] [Gemmea 3 270M](https://huggingface.co/google/gemma-3-270m)
 
 There are `54513856` items in training split and `9620093` items in testing split. `1403098` unique product id (brand x c2 category)
@@ -15,18 +15,21 @@ The supported parameters:
 Note:
 1. ResidualQuantizer doesn't support different codebooks across levels.
 2. GCP server has 4TB CPU memory and 8 B200 GPUs with 183GB GPU memory. The job needs at least 500GB memory. 
+3. uniform sampling is very important to reduce collision.
 
 Industry practice for VQ-VAE and RQ-VAE suggests:
   - 1-1.5x capacity: High collision rate (10-20%)
   - 2-3x capacity: Low collision rate (3-5%) ✓ recommended
   - 5x+ capacity: Diminishing returns, wasted computation
 
+### Qwen 0.6B
 - [x] uniform sampling disable, 3 level, 256 each level. It would have `16M` unique combinations of semantic IDs and looks ok given 1.4M unique products and 60M unique items.
 - [x] uniform sampling enabled, 3 level, 256 each level. It would have `16M` unique combinations of semantic IDs.
 - [x] uniform sampling disable, 3 level, 128 each level. It would have `2M` unique combinations of semantic IDs.
 - [x] uniform sampling enabled, 3 level, 128 each level. It would have `2M` unique combinations of semantic IDs.
 - [x] uniform sampling disable, 3 level, 512 each level. It would have `134M` unique combinations of semantic IDs.
 - [x] uniform sampling enabled, 3 level, 512 each level. It would have `134M` unique combinations of semantic IDs.
+- [x] uniform sampling enabled, 4 level, 128 each level. It would have `268M` unique combinations of semantic IDs.
 
 ### 128x128x128
 ```
@@ -58,6 +61,7 @@ After  balancing:
 ```
 
 ### 256x256x256
+```
 Before balancing:
   total=54513856
   L1: unique=256
@@ -83,9 +87,10 @@ After  balancing:
   L2: unique=256
   L3: unique=256
   unique full-paths=9426059  collision_rate=0.8271
-
+```
 
 ### 512x512x512
+```
 Before balancing:
   total=54513856
   L1: unique=256
@@ -93,24 +98,62 @@ Before balancing:
   L3: unique=256
   L4: unique=8
   unique full-paths=8653621  collision_rate=0.8413
-Saved indices: /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_train_512_512_512.json
-Saved faiss quantizer: /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_train_512_512_512.faiss
-loading test: /mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train.npy
-0
-shape: (9620093, 1024)
-0
-Encoding 9620093 vectors ...
-  done, codes.shape=(9620093, 4)
 
+=== Sinkhorn uniform mapping  level 1/4 ===
+  Sinkhorn level: N=54513856  K=512  tau=794.23  iters=30  batch=8192
+    level balanced: min=57874  max=567636
+
+=== Sinkhorn uniform mapping  level 2/4 ===
+  Sinkhorn level: N=54513856  K=512  tau=583.03  iters=30  batch=8192
+    level balanced: min=298  max=703164
+
+=== Sinkhorn uniform mapping  level 3/4 ===
+  Sinkhorn level: N=54513856  K=512  tau=378.25  iters=30  batch=8192
+    level balanced: min=363  max=1030346
 0
+After  balancing:
+  total=54513856
+  L1: unique=512
+  L2: unique=512
+  L3: unique=512
+  L4: unique=8
+  unique full-paths=34141381  collision_rate=0.3737
+```
+
+### 128x128x128x128
+```
 Before balancing:
-  total=9620093
-  L1: unique=256
+  total=54513856
+  L1: unique=255
   L2: unique=256
   L3: unique=256
-  L4: unique=8
-  unique full-paths=3538640  collision_rate=0.6322
+  L4: unique=16
+  unique full-paths=7899650  collision_rate=0.8551
 
+=== Sinkhorn uniform mapping  level 1/4 ===
+  Sinkhorn level: N=54513856  K=128  tau=694.44  iters=30  batch=8192
+    level balanced: min=259337  max=726918
+
+=== Sinkhorn uniform mapping  level 2/4 ===
+  Sinkhorn level: N=54513856  K=128  tau=602.41  iters=30  batch=8192
+    level balanced: min=337942  max=624278
+
+=== Sinkhorn uniform mapping  level 3/4 ===
+  Sinkhorn level: N=54513856  K=128  tau=447.74  iters=30  batch=8192
+    level balanced: min=335298  max=537493
+
+=== Sinkhorn uniform mapping  level 4/4 ===
+  Sinkhorn level: N=54513856  K=128  tau=364.33  iters=30  batch=8192
+    level balanced: min=403181  max=471660
+0
+After  balancing:
+  total=54513856
+  L1: unique=128
+  L2: unique=128
+  L3: unique=128
+  L4: unique=128
+  unique full-paths=26170168  collision_rate=0.5199
+```
 
 ## RQVAE
 
@@ -152,5 +195,5 @@ Before balancing:
   | Expected collision rate | 2-3%             | 2-3%                  | <1%                        |
   | Expected MSE            | <0.005           | <0.005                | <0.003                     |
   |-------------------------|------------------|-----------------------|----------------------------|
-  | Status                  | 1038             | TBD                   |                            |
+  | Status                  | [x]1053           | 1048                  |                            |
 

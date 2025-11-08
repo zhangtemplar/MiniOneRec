@@ -1,14 +1,14 @@
 #!/bin/bash
 
-#SBATCH --job-name=ravae_%j
+#SBATCH --job-name=rqvae_%j
 #SBATCH --gres=gpu:8
 #SBATCH --mem=0
 #SBATCH --time=72:00:00
 #SBATCH --cpus-per-task=32
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=1
-#SBATCH --output=ravae_%j.log
-#SBATCH --error=ravae_%j.err
+#SBATCH --output=rqvae_%j.log
+#SBATCH --error=rqvae_%j.err
 
 export NODE_RANK=$SLURM_NODEID
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
