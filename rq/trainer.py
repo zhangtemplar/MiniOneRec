@@ -16,6 +16,7 @@ class Trainer(object):
     def __init__(self, args, model, data_num):
         self.args = args
         self.model = model
+        self.use_multi_gpu = False
         self.logger = logging.getLogger()
 
         self.lr = args.lr
@@ -44,6 +45,10 @@ class Trainer(object):
         self.best_collision_ckpt = "best_collision_model.pth"
         self.optimizer = self._build_optimizer()
         self.scheduler = self._get_scheduler()
+        if self.device.type == 'cuda' and torch.cuda.device_count() > 1:
+            self.use_multi_gpu = True
+            self.model = torch.nn.DataParallel(self.model)
+            self.logger.info(f"using {torch.cuda.device_count()} GPUs to train")
         self.model = self.model.to(self.device)
 
     def _build_optimizer(self):
@@ -155,12 +160,13 @@ class Trainer(object):
 
         ckpt_path = os.path.join(self.ckpt_dir,ckpt_file) if ckpt_file \
             else os.path.join(self.ckpt_dir, 'epoch_%d_collision_%.4f_model.pth' % (epoch, collision_rate))
+        model = self.model.module if self.use_multi_gpu else self.model
         state = {
             "args": self.args,
             "epoch": epoch,
             "best_loss": self.best_loss,
             "best_collision_rate": self.best_collision_rate,
-            "state_dict": self.model.state_dict(),
+            "state_dict": model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
         }
         torch.save(state, ckpt_path, pickle_protocol=4)

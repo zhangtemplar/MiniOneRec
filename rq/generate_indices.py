@@ -10,7 +10,7 @@ from time import time
 from torch import optim
 from tqdm import tqdm
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 
 from datasets import EmbDataset
 from models.rqvae import RQVAE
@@ -70,13 +70,18 @@ def main(data_path, ckpt_path, output_file, device):
                     )
 
     model.load_state_dict(state_dict)
+    sampler = None
+    if device.type == 'cuda' and torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+        sampler = DistributedSampler(data)
+        logger.info(f"using {torch.cuda.device_count()} GPUs to train")
     model = model.to(device)
     model.eval()
     logger.info(model)
 
     data_loader = DataLoader(data,num_workers=args.num_workers,
                                 batch_size=64, shuffle=False,
-                                pin_memory=True)
+                                pin_memory=True, sampler=sampler)
 
     all_indices = []
     all_indices_str = []
@@ -150,7 +155,7 @@ def parse_args():
     parser.add_argument('--dataset', type=str, help='full path to dataset, which is a npy file')
     parser.add_argument('--output_file', type=str, help='full path to output file, which is a json file')
     parser.add_argument('--ckpt_path', type=str, help='full path to checkpoint file, which is a pth file')
-    parser.add_argument('--device', type=str, default="cuda:0")
+    parser.add_argument('--device', type=str, default="cuda")
 
     return parser.parse_args()
 

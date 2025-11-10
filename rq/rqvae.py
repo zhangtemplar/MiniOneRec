@@ -5,7 +5,7 @@ import numpy as np
 from time import time
 import logging
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 
 from datasets import EmbDataset
 from models.rqvae import RQVAE
@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--sk_epsilons', type=float, nargs='+', default=[0.0, 0.0, 0.0], help="sinkhorn epsilons")
     parser.add_argument("--sk_iters", type=int, default=50, help="max sinkhorn iters")
 
-    parser.add_argument("--device", type=str, default="cuda:0", help="gpu or cpu")
+    parser.add_argument("--device", type=str, default="cuda", help="gpu or cpu")
 
     parser.add_argument('--num_emb_list', type=int, nargs='+', default=[256,256,256], help='emb num of every vq')
     parser.add_argument('--e_dim', type=int, default=32, help='vq codebook embedding size')
@@ -86,9 +86,12 @@ if __name__ == '__main__':
                   sk_iters=args.sk_iters,
                   )
     logger.info(model)
+    sampler = None
+    if args.device == 'cuda' and torch.cuda.device_count() > 1:
+        sampler = DistributedSampler(data)
     data_loader = DataLoader(data,num_workers=args.num_workers,
                              batch_size=args.batch_size, shuffle=True,
-                             pin_memory=True)
+                             pin_memory=True, sampler=sampler)
     trainer = Trainer(args,model, len(data_loader))
     best_loss, best_collision_rate = trainer.fit(data_loader)
 
