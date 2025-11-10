@@ -4,7 +4,7 @@
 FAISS ResidualQuantizer  +  Sinkhorn-based Uniform Semantic Mapping
 ===================================================================
 """
-
+import math
 import logging
 import argparse
 import json
@@ -31,17 +31,22 @@ def pairwise_sq_dists_batch(X, C, C_norm2=None):
     return X_norm2 + C_norm2[None, :] - 2.0 * dots
 
 
-def train_faiss_rq(data, num_levels=3, codebook_size=256, verbose=True):
+def train_faiss_rq(data, num_levels=3, codebook_size=[256, 256, 256], verbose=True, max_beam_size: int=8):
     N, d = data.shape
+    assert num_levels == len(codebook_size), f"{num_levels=} mismatch {codebook_size=}"
+
+    nbits = np.log2(np.array(codebook_size)).astype(np.uint64)
+    nbits = faiss.UInt64Vector()
+    for c in codebook_size:
+        nbits.push_back(int(np.log2(c)))
     if verbose:
         logger.error("Training FAISS ResidualQuantizer")
         logger.error(f"  data={N}  dim={d}  levels={num_levels}  "
-              f"codebook={codebook_size}  total_codes={codebook_size ** num_levels:,}")
-
-    nbits = int(np.log2(codebook_size))
-    rq = faiss.ResidualQuantizer(d, num_levels, nbits)
-    rq.train_type = faiss.ResidualQuantizer.Train_default
-    rq.max_beam_size = 1
+              f"codebook={codebook_size} {nbits=} total_codes={math.prod(codebook_size)}")
+    rq = faiss.ResidualQuantizer(d, nbits)
+    # Train_default (fastest), Train_progressive_dim (default), Train_refine_codebook
+    rq.train_type = faiss.ResidualQuantizer.Train_progressive_dim
+    rq.max_beam_size = max_beam_size
 
     rq.train(data)
     if verbose:
@@ -217,7 +222,7 @@ def generate_codes(rq, data, num_levels, uniform: bool, batch_size: int, iters: 
 
     if uniform:
         codes_bal = sinkhorn_uniform_mapping(
-            rq, data, codes_raw, num_levels,
+            rq, data, codes_raw, num_levels=num_levels,
             batch_size=batch_size,
             iters=iters,
             verbose=True)
@@ -245,13 +250,13 @@ def main():
     parser = argparse.ArgumentParser(
         description="FAISS-RQ + Sinkhorn uniform mapping")
     parser.add_argument("--dataset", help="full dataset path")
-    parser.add_argument("--num_levels", type=int, default=3)
-    parser.add_argument("--codebook_size", type=int, default=256)
+    parser.add_argument("--codebook_size", type=int, nargs="+", default=[256, 256, 256])
     parser.add_argument("--uniform", action="store_true",
                         help="enable Sinkhorn uniform mapping")
     parser.add_argument("--iters", type=int, default=30,
                         help="Sinkhorn iterations")
     parser.add_argument("--batch_size", type=int, default=8192)
+    parser.add_argument("--max_beam_size", type=int, default=8)
     parser.add_argument("--output_root", help="full output path, which is a json")
     parser.add_argument("--test_data", type=str, default=None,
                         help="Optional full path to test data (.npy file). If provided, "
@@ -271,11 +276,12 @@ def main():
     data = np.ascontiguousarray(data.astype(np.float32))
     logger.error(f"shape: {data.shape}")
     logger.error(os.system("free -h"))
+    num_levels = len(args.codebook_size)
 
-    rq = train_faiss_rq(data, args.num_levels, args.codebook_size)
+    rq = train_faiss_rq(data, num_levels, args.codebook_size, max_beam_size=args.max_beam_size)
     logger.error(os.system("free -h"))
     
-    generate_codes(rq, data,args.num_levels, args.uniform, args.batch_size, args.iters, args.output_root)
+    generate_codes(rq, data, num_levels, args.uniform, args.batch_size, args.iters, args.output_root)
     del data
 
     # Encode test data if provided
@@ -286,7 +292,7 @@ def main():
         data = np.ascontiguousarray(data.astype(np.float32))
         logger.error(f"shape: {data.shape}")
         logger.error(os.system("free -h"))
-        generate_codes(rq, data, args.num_levels, args.uniform, args.batch_size, args.iters, args.test_data_output)
+        generate_codes(rq, data, num_levels, args.uniform, args.batch_size, args.iters, args.test_data_output)
 
 def get_first_nbits(rq):
     if isinstance(rq.nbits, int):

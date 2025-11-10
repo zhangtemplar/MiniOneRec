@@ -23,13 +23,19 @@ Industry practice for VQ-VAE and RQ-VAE suggests:
   - 5x+ capacity: Diminishing returns, wasted computation
 
 ### Qwen 0.6B
-- [x] uniform sampling disable, 3 level, 256 each level. It would have `16M` unique combinations of semantic IDs and looks ok given 1.4M unique products and 60M unique items.
-- [x] uniform sampling enabled, 3 level, 256 each level. It would have `16M` unique combinations of semantic IDs.
-- [x] uniform sampling disable, 3 level, 128 each level. It would have `2M` unique combinations of semantic IDs.
-- [x] uniform sampling enabled, 3 level, 128 each level. It would have `2M` unique combinations of semantic IDs.
-- [x] uniform sampling disable, 3 level, 512 each level. It would have `134M` unique combinations of semantic IDs.
-- [x] uniform sampling enabled, 3 level, 512 each level. It would have `134M` unique combinations of semantic IDs.
-- [x] uniform sampling enabled, 4 level, 128 each level. It would have `268M` unique combinations of semantic IDs.
+- default
+  - [x] uniform sampling disable, 3 level, 256 each level. It would have `16M` unique combinations of semantic IDs and looks ok given 1.4M unique products and 60M unique items.
+  - [x] uniform sampling enabled, 3 level, 256 each level. It would have `16M` unique combinations of semantic IDs.
+  - [x] uniform sampling disable, 3 level, 128 each level. It would have `2M` unique combinations of semantic IDs.
+  - [x] uniform sampling enabled, 3 level, 128 each level. It would have `2M` unique combinations of semantic IDs.
+  - [x] uniform sampling disable, 3 level, 512 each level. It would have `134M` unique combinations of semantic IDs.
+  - [x] uniform sampling enabled, 3 level, 512 each level. It would have `134M` unique combinations of semantic IDs.
+  - [x] uniform sampling enabled, 4 level, 128 each level. It would have `268M` unique combinations of semantic IDs.
+- new iteration: use max_beam_size=8, enable uniform, Train_progressive_dim instead of Train_default, allow difference codebooks sizes across levels. OOM
+  - [1060] 4096 x 4096
+  - [1080] 2048 x 1024 x 512
+  - [1082] 1024 x 512 x 256
+
 
 ### 128x128x128
 ```

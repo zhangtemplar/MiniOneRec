@@ -26,18 +26,18 @@ echo "MASTER_PORT="$MASTER_PORT
 # set default value
 # qwen 0.6B eval
 dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train.npy"
-output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_train_uniform_512_512_512.json"
+output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqkmeans/rankagi_output_v2_train_4096_4096.json"
 test_dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_eval.npy"
-test_output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_eval_uniform_512_512_512.json"
-num_levels=3
-codebook_size=512
+test_output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqkmeans/rankagi_output_v2_eval_4096_4096.json"
+max_beam_size=5
+codebook_size="4096 4096"
 
 # check arguments
 dataset="${1:-$dataset}"
 output="${2:-$output}"
 test_dataset="${3:-$test_dataset}"
 test_output="${4:-$test_output}"
-num_levels="${5:-$num_levels}"
+max_beam_size="${5:-$max_beam_size}"
 codebook_size="${6:-$codebook_size}"
 
 free -h
@@ -51,5 +51,5 @@ python rqkmeans_faiss.py \
       --output_root $output \
       --test_data $test_dataset \
       --test_data_output $test_output \
-      --num_levels $num_levels \
+      --max_beam_size $max_beam_size \
       --codebook_size $codebook_size --uniform
