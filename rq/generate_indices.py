@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
 import collections
 import argparse
 import json
 import logging
 import random
+import datetime
+import os
 
 import numpy as np
 import torch
@@ -11,6 +14,7 @@ from torch import optim
 from tqdm import tqdm
 
 from torch.utils.data import DataLoader, DistributedSampler
+import torch.distributed as dist
 
 from datasets import EmbDataset
 from models.rqvae import RQVAE
@@ -51,7 +55,7 @@ def main(data_path, ckpt_path, output_file, device):
     ckpt = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=False)
     args = ckpt["args"]
     state_dict = ckpt["state_dict"]
-
+    assert len(args.num_emb_list) <=8, "upto 8 levels of codebook is supported"
 
     data = EmbDataset(data_path)
 
@@ -71,13 +75,17 @@ def main(data_path, ckpt_path, output_file, device):
 
     model.load_state_dict(state_dict)
     sampler = None
-    if device.type == 'cuda' and torch.cuda.device_count() > 1:
+    rank = int(os.environ.get("LOCAL_RANK", "0"))
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    if world_size > 1:
+        torch.cuda.set_device(rank)
+        dist.init_process_group(backend='nccl', timeout=datetime.timedelta(minutes=30))
         model = torch.nn.DataParallel(model)
         sampler = DistributedSampler(data)
-        logger.info(f"using {torch.cuda.device_count()} GPUs to train")
+        logger.error(f"using {world_size} GPUs to train")
     model = model.to(device)
     model.eval()
-    logger.info(model)
+    logger.error(model)
 
     data_loader = DataLoader(data,num_workers=args.num_workers,
                                 batch_size=64, shuffle=False,
@@ -85,7 +93,7 @@ def main(data_path, ckpt_path, output_file, device):
 
     all_indices = []
     all_indices_str = []
-    prefix = ["<a_{}>","<b_{}>","<c_{}>","<d_{}>","<e_{}>"]
+    prefix = ["<a_{}>","<b_{}>","<c_{}>","<d_{}>","<e_{}>","<f_{}>","<g_{}>","<h_{}>"]
 
     for d in tqdm(data_loader):
         d = d.to(device)
@@ -99,7 +107,7 @@ def main(data_path, ckpt_path, output_file, device):
             all_indices.append(code)
             all_indices_str.append(str(code))
         # break
-
+    logger.error("rqvae inference completed")
     all_indices = np.array(all_indices)
     all_indices_str = np.array(all_indices_str)
 
@@ -109,6 +117,7 @@ def main(data_path, ckpt_path, output_file, device):
     if model.rq.vq_layers[-1].sk_epsilon == 0.0:
         model.rq.vq_layers[-1].sk_epsilon = 0.003
 
+    logger.error("start dedup rqvae code by appending indices")
     tt = 0
     #There are often duplicate items in the dataset, and we no longer differentiate them
     while True:
@@ -116,8 +125,8 @@ def main(data_path, ckpt_path, output_file, device):
             break
 
         collision_item_groups = get_collision_item(all_indices_str)
-        logger.info(collision_item_groups)
-        logger.info(len(collision_item_groups))
+        # logger.error(collision_item_groups)
+        logger.error(len(collision_item_groups))
         for collision_items in collision_item_groups:
             d = data[collision_items].to(device)
 
@@ -133,12 +142,12 @@ def main(data_path, ckpt_path, output_file, device):
         tt += 1
 
 
-    logger.info(f"All indices number:  {len(all_indices)}")
-    logger.info(f"Max number of conflicts: {max(get_indices_count(all_indices_str).values())}")
+    logger.error(f"All indices number:  {len(all_indices)}")
+    logger.error(f"Max number of conflicts: {max(get_indices_count(all_indices_str).values())}")
 
     tot_item = len(all_indices_str)
     tot_indice = len(set(all_indices_str.tolist()))
-    logger.info(f"Collision Rate {(tot_item-tot_indice)/tot_item}")
+    logger.error(f"Collision Rate {(tot_item-tot_indice)/tot_item}")
 
     all_indices_dict = {}
     for item, indices in enumerate(all_indices.tolist()):
@@ -171,8 +180,8 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
 
     args = parse_args()
-    logger.info("=================================================")
-    logger.info(f"{args}")
-    logger.info("=================================================")
+    logger.error("=================================================")
+    logger.error(f"{args}")
+    logger.error("=================================================")
 
     main(args.dataset, args.ckpt_path, args.output_file, torch.device(args.device))

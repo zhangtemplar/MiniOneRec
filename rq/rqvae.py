@@ -1,11 +1,15 @@
+#!/usr/bin/env python3
 import argparse
 import random
 import torch
 import numpy as np
 from time import time
 import logging
+import os
+import datetime
 
 from torch.utils.data import DataLoader, DistributedSampler
+import torch.distributed as dist
 
 from datasets import EmbDataset
 from models.rqvae import RQVAE
@@ -63,9 +67,9 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
 
     args = parse_args()
-    logger.info("=================================================")
-    logger.info(f"{args}")
-    logger.info("=================================================")
+    logger.error("=================================================")
+    logger.error(f"{args}")
+    logger.error("=================================================")
 
     logging.basicConfig(level=logging.DEBUG)
 
@@ -85,16 +89,22 @@ if __name__ == '__main__':
                   sk_epsilons=args.sk_epsilons,
                   sk_iters=args.sk_iters,
                   )
-    logger.info(model)
+    logger.error(model)
     sampler = None
-    if args.device == 'cuda' and torch.cuda.device_count() > 1:
+    rank = int(os.environ.get("LOCAL_RANK", "0"))
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    if world_size > 1:
+        torch.cuda.set_device(rank)
+        dist.init_process_group(backend='nccl', rank=rank, world_size=world_size, timeout=datetime.timedelta(minutes=30))
         sampler = DistributedSampler(data)
+        logger.error(f"using {world_size} GPUs to train")
+    logger.error("done")
     data_loader = DataLoader(data,num_workers=args.num_workers,
                              batch_size=args.batch_size, shuffle=True,
                              pin_memory=True, sampler=sampler)
     trainer = Trainer(args,model, len(data_loader))
     best_loss, best_collision_rate = trainer.fit(data_loader)
 
-    logger.info(f"Best Loss {best_loss}")
-    logger.info(f"Best Collision Rate {best_collision_rate}")
+    logger.error(f"Best Loss {best_loss}")
+    logger.error(f"Best Collision Rate {best_collision_rate}")
 

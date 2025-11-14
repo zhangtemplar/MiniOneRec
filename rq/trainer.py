@@ -16,7 +16,6 @@ class Trainer(object):
     def __init__(self, args, model, data_num):
         self.args = args
         self.model = model
-        self.use_multi_gpu = False
         self.logger = logging.getLogger()
 
         self.lr = args.lr
@@ -45,10 +44,11 @@ class Trainer(object):
         self.best_collision_ckpt = "best_collision_model.pth"
         self.optimizer = self._build_optimizer()
         self.scheduler = self._get_scheduler()
-        if self.device.type == 'cuda' and torch.cuda.device_count() > 1:
-            self.use_multi_gpu = True
+        self.rank = int(os.environ.get("RANK", "0"))
+        self.world_size = int(os.environ.get("WORLD_SIZE", "1"))
+        if self.world_size > 1:
             self.model = torch.nn.DataParallel(self.model)
-            self.logger.info(f"using {torch.cuda.device_count()} GPUs to train")
+            self.logger.error(f"using {self.world_size} GPUs to train")
         self.model = self.model.to(self.device)
 
     def _build_optimizer(self):
@@ -160,7 +160,7 @@ class Trainer(object):
 
         ckpt_path = os.path.join(self.ckpt_dir,ckpt_file) if ckpt_file \
             else os.path.join(self.ckpt_dir, 'epoch_%d_collision_%.4f_model.pth' % (epoch, collision_rate))
-        model = self.model.module if self.use_multi_gpu else self.model
+        model = self.model.module if self.world_size > 1 else self.model
         state = {
             "args": self.args,
             "epoch": epoch,
@@ -171,7 +171,7 @@ class Trainer(object):
         }
         torch.save(state, ckpt_path, pickle_protocol=4)
 
-        self.logger.info(
+        self.logger.error(
             set_color("Saving current", "blue") + f": {ckpt_path}"
         )
 
@@ -202,7 +202,7 @@ class Trainer(object):
             train_loss_output = self._generate_train_loss_output(
                 epoch_idx, training_start_time, training_end_time, train_loss, train_recon_loss
             )
-            self.logger.info(train_loss_output)
+            self.logger.error(train_loss_output)
 
 
             # eval
@@ -233,7 +233,7 @@ class Trainer(object):
                     + ": %f]"
                 ) % (epoch_idx, valid_end_time - valid_start_time, collision_rate)
 
-                self.logger.info(valid_score_output)
+                self.logger.error(valid_score_output)
                 ckpt_path = self._save_checkpoint(epoch_idx, collision_rate=collision_rate)
                 now_save = (-collision_rate, ckpt_path)
                 if len(self.newest_save_queue) < self.save_limit:

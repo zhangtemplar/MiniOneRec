@@ -24,11 +24,11 @@ echo "MASTER_ADDR="$MASTER_ADDR
 echo "MASTER_PORT="$MASTER_PORT
 
 # set default value
-ckpt_path="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_8B/Nov-08-2025_00-10-16/best_loss_model.pth"
-dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train_8B.npy"
-output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_train_512_512_512_8B.json"
-test_dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_eval_8B.npy"
-test_output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_eval_512_512_512_8B.json"
+ckpt_path="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_0.6B_256x6/Nov-12-2025_21-02-29/best_loss_model.pth"
+dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train.npy"
+output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_train_256x6_0.6B.json"
+test_dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_eval.npy"
+test_output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_eval_256x6_0.6B.json"
 
 # check arguments
 dataset="${1:-$dataset}"
@@ -43,13 +43,27 @@ nvidia-smi
 
 echo $dataset $output $test_dataset $test_output $ckpt_path
 
+cd /home/qiangzhang_meta_com/MiniOneRec/rq
+
 # for 1024D / qwen 0.6B
-python generate_indices.py \
+torchrun \
+    --master_addr=$MASTER_ADDR \
+    --master_port=$MASTER_PORT \
+    --node_rank=$NODE_RANK \
+    --nproc_per_node=$NPROC_PER_NODE \
+    --nnodes=$SLURM_NNODES \
+    generate_indices.py \
     --dataset $dataset \
     --output_file $output \
     --ckpt_path $ckpt_path
 
-python generate_indices.py \
+torchrun \
+    --master_addr=$MASTER_ADDR \
+    --master_port=$MASTER_PORT \
+    --node_rank=$NODE_RANK \
+    --nproc_per_node=$NPROC_PER_NODE \
+    --nnodes=$SLURM_NNODES \
+    generate_indices.py \
     --dataset $test_dataset \
     --output_file $test_output \
     --ckpt_path $ckpt_path

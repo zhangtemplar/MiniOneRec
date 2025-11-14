@@ -165,6 +165,7 @@ def sinkhorn_uniform_mapping(rq, data, codes, *, num_levels, batch_size=8192,
     codebooks = get_rq_codebooks(rq)
     N, M = codes.shape
     K = codebooks.shape[1]
+    num_levels = min(num_levels, M)
 
     codes_bal = codes.copy()
     for l in range(num_levels):
@@ -200,7 +201,7 @@ def analyze_codes(codes, title="", verbose=True):
 
 
 def save_indices_json(codes, path, use_prefix=True):
-    tpl = ["<a_{}>", "<b_{}>", "<c_{}>", "<d_{}>", "<e_{}>"]
+    tpl = ["<a_{}>", "<b_{}>", "<c_{}>", "<d_{}>", "<e_{}>", "<f{}>", "<g_{}>"]
     idx = {}
     for i, code in enumerate(codes):
         if use_prefix:
@@ -274,9 +275,11 @@ def main():
     logger.error(os.system("free -h"))
     data = np.load(args.dataset, mmap_mode='r')
     data = np.ascontiguousarray(data.astype(np.float32))
+    data = np.nan_to_num(data, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
     logger.error(f"shape: {data.shape}")
     logger.error(os.system("free -h"))
     num_levels = len(args.codebook_size)
+    assert num_levels <= 8, f"save_indices_json/tpl only support upto 8 levels"
 
     rq = train_faiss_rq(data, num_levels, args.codebook_size, max_beam_size=args.max_beam_size)
     logger.error(os.system("free -h"))

@@ -25,12 +25,12 @@ echo "MASTER_PORT="$MASTER_PORT
 
 # set default value
 # qwen 0.6B eval
-dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train.npy"
-output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqkmeans/rankagi_output_v2_train_4096_4096.json"
-test_dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_eval.npy"
-test_output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqkmeans/rankagi_output_v2_eval_4096_4096.json"
+dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train_8B.npy"
+output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqkmeans/rankagi_output_v2_train_8B_256x6.json"
+test_dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_eval_8B.npy"
+test_output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqkmeans/rankagi_output_v2_eval_8B_256x6.json"
 max_beam_size=5
-codebook_size="4096 4096"
+codebook_size="256 256 256 256 256 256"
 
 # check arguments
 dataset="${1:-$dataset}"
