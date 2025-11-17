@@ -121,7 +121,7 @@ def main(data_path, ckpt_path, output_file, device):
     tt = 0
     #There are often duplicate items in the dataset, and we no longer differentiate them
     while True:
-        if tt >= 20 or check_collision(all_indices_str):
+        if tt >= 1 or check_collision(all_indices_str):
             break
 
         collision_item_groups = get_collision_item(all_indices_str)

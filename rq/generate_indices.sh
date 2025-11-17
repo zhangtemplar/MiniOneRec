@@ -13,7 +13,7 @@
 export NODE_RANK=$SLURM_NODEID
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export NNODES=$SLURM_NNODES
-export NPROC_PER_NODE=8
+export NPROC_PER_NODE=1
 echo "NODE_RANK="$NODE_RANK
 echo "NNODES="$SLURM_NNODES
 echo "NPROC_PER_NODE="$NPROC_PER_NODE

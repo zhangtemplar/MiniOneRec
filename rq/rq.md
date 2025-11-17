@@ -44,7 +44,7 @@ Industry practice for VQ-VAE and RQ-VAE suggests:
 | Configurations | Codebook | Beam size | Search method | Collision Rate Before Uniform | Collision Rate After Uniform |
 |----------------|----------|-----------|---------------|----------------|---------------|
 | [x]         | 256*5    | 5         | prog          |          |         |
-| [x]         | 256*6    | 5         | prog          |         |         |
+| [1568]         | 256*6    | 5         | prog          |         |         |
 
 ## RQVAE
 
@@ -74,5 +74,5 @@ Industry practice for VQ-VAE and RQ-VAE suggests:
 | --learner           | AdamW            | AdamW                      | AdamW                          | AdamW                                  |
 | --weight_decay      | 1e-5             | 1e-5                       | 1e-5                           | 1e-5                                   |
 | --lr_scheduler_type | constant         | constant                   | constant                       | constant                               |
-| Status                  | [x][]           | [x][] 0.9397                  |   [x]0.3841 1420 | [x]0.5054 1554  |
+| Status                  | [x][]           | [x][] 0.9397                  |   [x]0.3841 1676 | [x]0.5054 1675  |
 

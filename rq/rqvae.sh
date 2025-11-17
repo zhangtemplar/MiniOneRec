@@ -25,8 +25,8 @@ echo "MASTER_PORT="$MASTER_PORT
 
 # set default value
 # qwen 0.6B eval
-dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train.npy"
-output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_0.6B_256x6"
+dataset="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rankagi_output_v2_item_text_train_8B.npy"
+output="/mnt/lustre/metavmds0lstre/data/rankagi/external_dataset/minionerec/rqvae/rankagi_output_v2_8B_256x6_v2"
 batch_size=3
 codebook_size=256
 
@@ -45,36 +45,6 @@ nvidia-smi
 echo $dataset $output $test_dataset $test_output $num_levels $codebook_size
 
 # for 4096D / qwen 8B
-# torchrun \
-#     --master_addr=$MASTER_ADDR \
-#     --master_port=$MASTER_PORT \
-#     --node_rank=$NODE_RANK \
-#     --nproc_per_node=$NPROC_PER_NODE \
-#     --nnodes=$SLURM_NNODES \
-#     qvae.py \
-#     --data_path $dataset \
-#     --ckpt_dir $output \
-#     --layers 4096 2048 1024 768 512 384 256 192 128 \
-#     --e_dim 128 \
-#     --batch_size 65536 \
-#     --num_emb_list 256 256 256 256 256 256 \
-#     --lr 1e-3 \
-#     --epochs 500 \
-#     --warmup_epochs 10 \
-#     --eval_step 10 \
-#     --kmeans_init True \
-#     --kmeans_iters 100 \
-#     --sk_epsilons 0.0 0.01 0.03 0.05 0.08 0.12 \
-#     --sk_iters 50 \
-#     --beta 0.25 \
-#     --quant_loss_weight 1.0 \
-#     --learner AdamW \
-#     --weight_decay 1e-5 \
-#     --lr_scheduler_type constant \
-#     --num_workers 8 \
-#     --device cuda
-
-# for 1024D / qwen 0.6B
 torchrun \
     --master_addr=$MASTER_ADDR \
     --master_port=$MASTER_PORT \
@@ -84,11 +54,11 @@ torchrun \
     rqvae.py \
     --data_path $dataset \
     --ckpt_dir $output \
-    --layers 1024 512 384 256 192 128 96 64 \
-    --e_dim 64 \
-    --batch_size 131072 \
+    --layers 4096 2048 1024 768 512 384 256 192 128 \
+    --e_dim 128 \
+    --batch_size 65536 \
     --num_emb_list 256 256 256 256 256 256 \
-    --lr 2e-3 \
+    --lr 1e-3 \
     --epochs 500 \
     --warmup_epochs 10 \
     --eval_step 10 \
@@ -101,5 +71,35 @@ torchrun \
     --learner AdamW \
     --weight_decay 1e-5 \
     --lr_scheduler_type constant \
-    --num_workers 16 \
+    --num_workers 8 \
     --device cuda
+
+# for 1024D / qwen 0.6B
+# torchrun \
+#     --master_addr=$MASTER_ADDR \
+#     --master_port=$MASTER_PORT \
+#     --node_rank=$NODE_RANK \
+#     --nproc_per_node=$NPROC_PER_NODE \
+#     --nnodes=$SLURM_NNODES \
+#     rqvae.py \
+#     --data_path $dataset \
+#     --ckpt_dir $output \
+#     --layers 1024 512 384 256 192 128 96 64 \
+#     --e_dim 64 \
+#     --batch_size 131072 \
+#     --num_emb_list 256 256 256 256 256 256 \
+#     --lr 2e-3 \
+#     --epochs 500 \
+#     --warmup_epochs 10 \
+#     --eval_step 10 \
+#     --kmeans_init True \
+#     --kmeans_iters 100 \
+#     --sk_epsilons 0.0 0.01 0.03 0.05 0.08 0.12 \
+#     --sk_iters 50 \
+#     --beta 0.25 \
+#     --quant_loss_weight 1.0 \
+#     --learner AdamW \
+#     --weight_decay 1e-5 \
+#     --lr_scheduler_type constant \
+#     --num_workers 16 \
+#     --device cuda
