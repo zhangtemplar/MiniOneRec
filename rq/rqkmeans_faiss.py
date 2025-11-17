@@ -4,6 +4,7 @@
 FAISS ResidualQuantizer  +  Sinkhorn-based Uniform Semantic Mapping
 ===================================================================
 """
+from typing import Union
 import math
 import logging
 import argparse
@@ -247,6 +248,23 @@ def generate_codes(rq, data, num_levels, uniform: bool, batch_size: int, iters: 
         logger.error(f"save faiss index failed: {e}")
 
 
+def load_data(dataset: str, subsample: float = 1.0) -> np.ndarray:
+    data = np.load(dataset, mmap_mode='r')
+    logger.error(f"loading dataset from {dataset} and got {data.shape}")
+    data = np.ascontiguousarray(data.astype(np.float32))
+    data = np.nan_to_num(data, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+
+    assert subsample > 0, f"{subsample=} should be in (0, 1.0]"
+    if subsample >= 1.0:
+        return data
+    train_size = int(data.shape[0] * subsample)
+    logger.error(f"subsample {data.shape[0]} to {train_size}")
+    indices = np.random.choice(len(data), train_size, replace=False)
+    train_data = np.ascontiguousarray(data[indices, :])
+    del data
+    return train_data
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="FAISS-RQ + Sinkhorn uniform mapping")
@@ -257,6 +275,7 @@ def main():
     parser.add_argument("--iters", type=int, default=30,
                         help="Sinkhorn iterations")
     parser.add_argument("--batch_size", type=int, default=8192)
+    parser.add_argument("--subsample", type=float, default=1.0, help="a number in (0, 1.0] to subsample the data")
     parser.add_argument("--max_beam_size", type=int, default=8)
     parser.add_argument("--output_root", help="full output path, which is a json")
     parser.add_argument("--test_data", type=str, default=None,
@@ -273,29 +292,31 @@ def main():
 
     logger.error(f"loading training: {args.dataset}")
     logger.error(os.system("free -h"))
-    data = np.load(args.dataset, mmap_mode='r')
-    data = np.ascontiguousarray(data.astype(np.float32))
-    data = np.nan_to_num(data, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-    logger.error(f"shape: {data.shape}")
+    data = load_data(args.dataset, args.subsample)
     logger.error(os.system("free -h"))
     num_levels = len(args.codebook_size)
     assert num_levels <= 8, f"save_indices_json/tpl only support upto 8 levels"
 
+    logger.error("start code book training")
     rq = train_faiss_rq(data, num_levels, args.codebook_size, max_beam_size=args.max_beam_size)
+    del data
+    logger.error("complete code book training")
     logger.error(os.system("free -h"))
     
+    logger.error("generates code for training data")
+    data = load_data(args.dataset, 1)
     generate_codes(rq, data, num_levels, args.uniform, args.batch_size, args.iters, args.output_root)
+    logger.error("complete code book for training")
     del data
 
     # Encode test data if provided
     if args.test_data:
-        logger.error(f"loading test: {args.dataset}")
+        logger.error("generates code for testing data")
+        data = load_data(args.test_data, 1)
         logger.error(os.system("free -h"))
-        data = np.load(args.test_data, mmap_mode='r')
-        data = np.ascontiguousarray(data.astype(np.float32))
-        logger.error(f"shape: {data.shape}")
-        logger.error(os.system("free -h"))
+        logger.error("generates code for testing data")
         generate_codes(rq, data, num_levels, args.uniform, args.batch_size, args.iters, args.test_data_output)
+        del data
 
 def get_first_nbits(rq):
     if isinstance(rq.nbits, int):
