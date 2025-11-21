@@ -9,6 +9,7 @@
 #SBATCH --nodes=1
 #SBATCH --output=rq_kmeans_%j.log
 #SBATCH --error=rq_kmeans_%j.err
+#SBATCH --exclude=metavmds1-a4-173,metavmds1-a4-148,metavmds1-a4-239,metavmds1-a4-5,metavmds1-a4-156
 
 export NODE_RANK=$SLURM_NODEID
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)

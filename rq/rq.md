@@ -43,8 +43,8 @@ Industry practice for VQ-VAE and RQ-VAE suggests:
 
 | Configurations | Codebook | Beam size | Search method | Collision Rate Before Uniform | Collision Rate After Uniform |
 |----------------|----------|-----------|---------------|----------------|---------------|
-| [x]         | 256*5    | 5         | prog          |          |         |
-| [1568]         | 256*6    | 5         | prog          |         |         |
+| [x]         | 256*5    | 5         | prog          |    0.2955     |   0.1597      |
+| [x]         | 256*6    | 5         | prog          |     0.1413     |    0.0533     |
 
 ## RQVAE
 
